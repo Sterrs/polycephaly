@@ -22,8 +22,8 @@ wheels/
 
 # Virtual Environment
 venv/
-ENV/
 env/
+ENV/
 .env
 
 # IDE
@@ -31,10 +31,9 @@ env/
 .vscode/
 *.swp
 *.swo
-
-# Misc
 .DS_Store
-.coverage
-htmlcov/
-.pytest_cache/
-.mypy_cache/ 
+
+# Project specific
+*.log
+.env.local
+.env.*.local 
