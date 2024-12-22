@@ -5,6 +5,7 @@ import os
 from openai import OpenAI
 from concurrent.futures import ProcessPoolExecutor
 import sys
+import argparse
 from typing import Optional
 from logging_utils import setup_logger, log_socket_event, log_api_call
 
@@ -273,11 +274,16 @@ def run_ai_player(name: str, game_code: str):
         player.logger.info("AI player process ending")
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Run AI players for the word guessing game')
+    parser.add_argument('-n', '--num_players', type=int, default=4,
+                       help='Number of AI players to create (default: 4)')
+    args = parser.parse_args()
+
     game_code = input("Enter game code: ")
-    ai_names = ["Alice_AI", "Bob_AI", "Charlie_AI", "David_AI"]
+    ai_names = [f"AI_Player_{i+1}" for i in range(args.num_players)]
     
-    # Start 4 AI players in separate processes
-    with ProcessPoolExecutor(max_workers=4) as executor:
+    # Start AI players in separate processes
+    with ProcessPoolExecutor(max_workers=args.num_players) as executor:
         futures = [
             executor.submit(run_ai_player, name, game_code)
             for name in ai_names
