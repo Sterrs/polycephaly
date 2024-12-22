@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Polycephaly - Collaborative Word Game</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- Landing Page -->
+        <div id="landing-page" class="page active">
+            <h1>Polycephaly</h1>
+            <p>A collaborative word game</p>
+            <div class="actions">
+                <button id="create-game-btn">Create Game</button>
+                <button id="join-game-btn">Join Game</button>
+            </div>
+        </div>
+
+        <!-- Create Game Form -->
+        <div id="create-game-form" class="page">
+            <h2>Create New Game</h2>
+            <div id="host-status" class="status-message success-message" style="display: none;"></div>
+            <form id="host-form">
+                <div class="input-group">
+                    <input type="text" id="host-name" placeholder="Your Name" required>
+                    <span class="input-status"></span>
+                </div>
+                <button type="submit" id="create-submit-btn">Create</button>
+            </form>
+            <button class="back-btn">Back</button>
+        </div>
+
+        <!-- Join Game Form -->
+        <div id="join-game-form" class="page">
+            <h2>Join Game</h2>
+            <div id="join-status" class="status-message success-message" style="display: none;"></div>
+            <form id="join-form">
+                <div class="input-group">
+                    <input type="text" id="game-code" placeholder="Game Code" required>
+                    <span class="input-status"></span>
+                </div>
+                <div class="input-group">
+                    <input type="text" id="player-name" placeholder="Your Name" required>
+                    <span class="input-status"></span>
+                </div>
+                <button type="submit" id="join-submit-btn">Join</button>
+            </form>
+            <button class="back-btn">Back</button>
+        </div>
+
+        <!-- Waiting Room -->
+        <div id="waiting-room" class="page">
+            <h2>Game Lobby</h2>
+            <div class="game-code-display">
+                <p>Share this code with your friends:</p>
+                <p class="code"><span id="displayed-game-code"></span></p>
+            </div>
+            <div class="players-list">
+                <h3>Players:</h3>
+                <ul id="players-list"></ul>
+            </div>
+            <div id="host-controls" style="display: none;">
+                <p class="waiting-info">Waiting for players to join...</p>
+                <p class="waiting-info">Need at least 2 players to start</p>
+                <button id="start-game-btn">Start Game</button>
+            </div>
+        </div>
+
+        <!-- Game Room -->
+        <div id="game-room" class="page">
+            <div class="player-info">
+                <p>You are: <span id="player-role"></span></p>
+            </div>
+            
+            <div class="game-status">
+                <h2>Current Sentence:</h2>
+                <p id="current-sentence"></p>
+            </div>
+            
+            <p id="turn-status" class="turn-status-message"></p>
+            
+            <div class="player-controls">
+                <div id="word-input-section">
+                    <input type="text" id="word-input" placeholder="Add a word">
+                    <button id="add-word-btn">Add Word</button>
+                </div>
+                
+                <div id="guess-section">
+                    <input type="text" id="guess-input" placeholder="Make your guess">
+                    <button id="submit-guess-btn">Submit Guess</button>
+                </div>
+            </div>
+
+            <div class="game-info">
+                <div class="turn-indicator">
+                    <h3>Players</h3>
+                    <ul id="game-players-list"></ul>
+                </div>
+                <div class="scoreboard">
+                    <h3>Scores</h3>
+                    <ul id="score-list"></ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Over Screen -->
+        <div id="game-over" class="page">
+            <h2>Game Over!</h2>
+            <div class="game-results">
+                <p>Winner: <span id="winner-name"></span></p>
+                <p>Subject was: <span id="final-subject"></span></p>
+                <p>Final sentence: <span id="final-sentence"></span></p>
+            </div>
+            <div class="final-scores">
+                <h3>Final Scores</h3>
+                <ul id="final-score-list"></ul>
+            </div>
+            <button id="new-game-btn">Play Again</button>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html> 

@@ -1,0 +1,447 @@
+:root {
+    --primary-color: #4a90e2;
+    --secondary-color: #f39c12;
+    --background-color: #f5f6fa;
+    --text-color: #2c3e50;
+    --error-color: #e74c3c;
+    --success-color: #2ecc71;
+    --border-radius: 8px;
+    --box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem;
+    min-height: 100vh;
+}
+
+.page {
+    display: none;
+    animation: fadeIn 0.3s ease-in;
+}
+
+.page.active {
+    display: block;
+}
+
+/* Landing Page */
+#landing-page {
+    text-align: center;
+    padding: 2rem;
+}
+
+h1 {
+    font-size: 3rem;
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+}
+
+.actions {
+    margin-top: 2rem;
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+}
+
+/* Forms */
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.input-group {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.input-status {
+    position: absolute;
+    right: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--success-color);
+    display: none;
+}
+
+.input-status.active {
+    display: block;
+}
+
+input {
+    padding: 0.8rem;
+    border: 2px solid #ddd;
+    border-radius: var(--border-radius);
+    font-size: 1rem;
+    transition: all 0.2s ease;
+}
+
+input:focus {
+    border-color: var(--primary-color);
+    outline: none;
+}
+
+input:disabled {
+    background-color: #f5f5f5;
+    border-color: #ddd;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+button {
+    padding: 0.8rem 1.5rem;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background-color 0.2s;
+}
+
+button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+button:hover:not(:disabled) {
+    background-color: #357abd;
+}
+
+.status-message {
+    margin: 1rem 0;
+    padding: 1rem;
+    border-radius: var(--border-radius);
+    text-align: center;
+    animation: fadeIn 0.3s ease-in;
+}
+
+.success-message {
+    background-color: rgba(46, 204, 113, 0.1);
+    border: 1px solid var(--success-color);
+    color: var(--success-color);
+}
+
+.error-message {
+    background-color: rgba(231, 76, 60, 0.1);
+    border: 1px solid var(--error-color);
+    color: var(--error-color);
+}
+
+.back-btn {
+    background-color: #95a5a6;
+    margin-top: 1rem;
+}
+
+.back-btn:hover {
+    background-color: #7f8c8d;
+}
+
+/* Game Room */
+.game-status {
+    background-color: white;
+    padding: 1.5rem;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    margin-bottom: 2rem;
+}
+
+#current-sentence {
+    font-size: 1.2rem;
+    margin-top: 1rem;
+    min-height: 3rem;
+    line-height: 2.5;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+}
+
+.player-controls {
+    display: grid;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+#word-input-section, #guess-section {
+    display: flex;
+    gap: 1rem;
+}
+
+#word-input-section input, #guess-section input {
+    flex: 1;
+}
+
+.game-info {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+}
+
+.turn-indicator {
+    background-color: white;
+    padding: 1rem;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+}
+
+.scoreboard {
+    background-color: white;
+    padding: 1rem;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+}
+
+/* Game Over Screen */
+.game-results {
+    background-color: white;
+    padding: 1.5rem;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    margin-bottom: 2rem;
+}
+
+.final-scores {
+    background-color: white;
+    padding: 1.5rem;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    margin-bottom: 2rem;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 600px) {
+    .container {
+        padding: 1rem;
+    }
+
+    h1 {
+        font-size: 2rem;
+    }
+
+    .game-info {
+        grid-template-columns: 1fr;
+    }
+
+    #word-input-section, #guess-section {
+        flex-direction: column;
+    }
+
+    .actions {
+        flex-direction: column;
+    }
+
+    button {
+        width: 100%;
+    }
+}
+
+.player-info {
+    background-color: white;
+    padding: 1rem;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    margin-bottom: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.player-info p {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+.player-info span {
+    font-weight: bold;
+    color: var(--primary-color);
+}
+
+#player-role {
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.turn-indicator {
+    background-color: white;
+    padding: 1rem;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+}
+
+.turn-indicator p {
+    margin: 0;
+    margin-bottom: 0.5rem;
+}
+
+.turn-indicator p:last-child {
+    margin-bottom: 0;
+}
+
+#turn-status {
+    font-size: 0.9rem;
+    color: var(--secondary-color);
+    font-style: italic;
+}
+
+#current-turn {
+    font-weight: bold;
+    color: var(--primary-color);
+}
+
+#host-controls {
+    margin-top: 2rem;
+    text-align: center;
+}
+
+.waiting-info {
+    color: var(--secondary-color);
+    margin: 0.5rem 0;
+    font-style: italic;
+}
+
+.game-code-display {
+    text-align: center;
+    margin: 1rem 0;
+    padding: 1.5rem;
+    background-color: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+}
+
+.game-code-display p {
+    margin: 0;
+}
+
+.game-code-display .code {
+    margin-top: 0.5rem;
+    font-size: 2rem;
+    font-weight: bold;
+    color: var(--primary-color);
+    letter-spacing: 2px;
+}
+
+#displayed-game-code {
+    background-color: var(--background-color);
+    padding: 0.5rem 1rem;
+    border-radius: var(--border-radius);
+    user-select: all; /* Makes it easy to select the code */
+}
+
+.players-list {
+    background-color: white;
+    padding: 1rem;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    margin: 1rem 0;
+}
+
+.players-list ul {
+    list-style: none;
+    margin-top: 0.5rem;
+}
+
+.players-list li {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #eee;
+}
+
+.players-list li:last-child {
+    border-bottom: none;
+}
+
+.word-bubble {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 15px;
+    margin: 0 4px;
+    margin-bottom: 8px;
+    color: #333;
+}
+
+#game-players-list {
+    list-style: none;
+    padding: 0;
+    margin: 1rem 0;
+}
+
+#game-players-list li {
+    padding: 0.5rem;
+    margin: 0.25rem 0;
+    border-radius: var(--border-radius);
+    display: flex;
+    align-items: center;
+    transition: background-color 0.2s ease;
+}
+
+#game-players-list li.current-turn {
+    background-color: rgba(74, 144, 226, 0.1);
+    border-left: 3px solid var(--primary-color);
+}
+
+#game-players-list .player-bubble {
+    margin-right: 0.5rem;
+}
+
+#game-players-list .player-role {
+    margin-left: auto;
+    font-size: 0.8rem;
+    color: var(--secondary-color);
+    font-style: italic;
+}
+
+#game-players-list .player-indicator {
+    margin-left: 0.5rem;
+    font-size: 0.8rem;
+    font-weight: bold;
+    color: var(--primary-color);
+}
+
+#game-players-list .host-indicator {
+    margin-left: 0.5rem;
+    font-size: 0.8rem;
+    color: var(--secondary-color);
+}
+
+.turn-status-message {
+    background-color: white;
+    padding: 1rem;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+    color: var(--secondary-color);
+    font-style: italic;
+    white-space: pre-line;
+}
+  
