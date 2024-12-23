@@ -99,9 +99,16 @@
                     <ul id="game-players-list"></ul>
                 </div>
                 <div class="scoreboard">
-                    <h3>Scores</h3>
-                    <ul id="score-list"></ul>
+                    <h3>Team Score</h3>
+                    <div id="score-display" class="score-text">
+                        <div class="score-value">0</div>
+                    </div>
                 </div>
+            </div>
+
+            <div id="guess-history">
+                <h3>Guess History</h3>
+                <div id="guess-list" class="guess-list"></div>
             </div>
         </div>
 
@@ -114,8 +121,14 @@
                 <p>Final sentence: <span id="final-sentence"></span></p>
             </div>
             <div class="final-scores">
-                <h3>Final Scores</h3>
-                <ul id="final-score-list"></ul>
+                <h3>Final Team Score</h3>
+                <div id="final-score" class="score-text">
+                    <div class="score-value">0</div>
+                </div>
+            </div>
+            <div id="final-guess-history">
+                <h3>All Guesses</h3>
+                <div id="final-guess-list" class="guess-list"></div>
             </div>
             <button id="new-game-btn">Play Again</button>
         </div>

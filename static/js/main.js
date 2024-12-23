@@ -210,7 +210,7 @@ socket.on('player_left', (data) => {
     });
 });
 
-function updateGamePlayersList(players, currentTurn) {
+function updateGamePlayersList(players, currentTurn, score) {
     const playersList = document.getElementById('game-players-list');
     playersList.innerHTML = '';
     
@@ -250,6 +250,10 @@ function updateGamePlayersList(players, currentTurn) {
         
         playersList.appendChild(li);
     });
+
+    // Update score display
+    const scoreValue = document.querySelector('#score-display .score-value');
+    scoreValue.textContent = score || 0;
 }
 
 socket.on('game_started', (data) => {
@@ -294,7 +298,7 @@ socket.on('game_started', (data) => {
     }
     
     // Update players list with roles
-    updateGamePlayersList(data.players, currentTurnName);
+    updateGamePlayersList(data.players, currentTurnName, data.score);
 });
 
 socket.on('sentence_updated', (data) => {
@@ -347,13 +351,37 @@ socket.on('sentence_updated', (data) => {
     
     turnStatus.textContent = statusMessage;
     
-    // Update players list with the server-provided player information
-    updateGamePlayersList(data.players, currentTurnName);
+    // Update players list and score
+    updateGamePlayersList(data.players, currentTurnName, data.score);
 });
 
 socket.on('guess_result', (data) => {
-    if (!data.correct) {
-        alert(`${data.guesser}'s guess was incorrect. Keep playing!`);
+    // Update guess history
+    const guessList = document.getElementById('guess-list');
+    guessList.innerHTML = ''; // Clear existing guesses
+    
+    data.guesses.forEach(guessData => {
+        const guessDiv = document.createElement('div');
+        guessDiv.className = 'guess-entry';
+        
+        const guessBubble = document.createElement('span');
+        guessBubble.className = 'guess-bubble';
+        guessBubble.style.backgroundColor = guessData.color;
+        guessBubble.textContent = guessData.guess;
+        
+        const guessTime = document.createElement('span');
+        guessTime.className = 'guess-time';
+        const timestamp = new Date(guessData.timestamp);
+        guessTime.textContent = timestamp.toLocaleTimeString();
+        
+        guessDiv.appendChild(guessBubble);
+        guessDiv.appendChild(guessTime);
+        guessList.appendChild(guessDiv);
+    });
+
+    // Update player list and score
+    if (data.players) {
+        updateGamePlayersList(data.players, currentTurnName, data.score);
     }
 });
 
@@ -365,16 +393,29 @@ socket.on('game_ended', (data) => {
     document.getElementById('final-subject').textContent = data.subject;
     document.getElementById('final-sentence').textContent = data.sentence;
     
-    // Update final scores with colored bubbles
-    const finalScoreList = document.getElementById('final-score-list');
-    finalScoreList.innerHTML = '';
-    Object.entries(data.scores).forEach(([player, score]) => {
-        const li = document.createElement('li');
-        const scoreBubble = document.createElement('span');
-        scoreBubble.className = 'player-bubble';
-        scoreBubble.textContent = `${player}: ${score}`;
-        li.appendChild(scoreBubble);
-        finalScoreList.appendChild(li);
+    // Update final score
+    document.querySelector('#final-score .score-value').textContent = data.score;
+    
+    // Update final guess history
+    const finalGuessList = document.getElementById('final-guess-list');
+    finalGuessList.innerHTML = '';
+    data.guesses.forEach(guessData => {
+        const guessDiv = document.createElement('div');
+        guessDiv.className = 'guess-entry';
+        
+        const guessBubble = document.createElement('span');
+        guessBubble.className = 'guess-bubble';
+        guessBubble.style.backgroundColor = guessData.color;
+        guessBubble.textContent = guessData.guess;
+        
+        const guessTime = document.createElement('span');
+        guessTime.className = 'guess-time';
+        const timestamp = new Date(guessData.timestamp);
+        guessTime.textContent = timestamp.toLocaleTimeString();
+        
+        guessDiv.appendChild(guessBubble);
+        guessDiv.appendChild(guessTime);
+        finalGuessList.appendChild(guessDiv);
     });
     
     // Reset game state
@@ -384,11 +425,6 @@ socket.on('game_ended', (data) => {
     currentGameCode = null;
     playerName = '';
     currentTurnName = '';
-    
-    // Wait 10 seconds before refreshing
-    setTimeout(() => {
-        window.location.reload();
-    }, 10000);
 });
 
 socket.on('error', (data) => {
@@ -528,6 +564,63 @@ style.textContent = `
         font-size: 1.2em;
         margin: 20px 0;
         line-height: 1.5;
+    }
+
+    #guess-history {
+        margin-top: 20px;
+        padding: 10px;
+        border-top: 1px solid #ccc;
+    }
+
+    #guess-history h3 {
+        margin-bottom: 10px;
+    }
+
+    .guess-list {
+        padding: 0;
+        margin: 0;
+        max-height: 200px;
+        overflow-y: auto;
+    }
+
+    .guess-entry {
+        margin: 5px 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .guess-bubble {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 15px;
+        color: #333;
+    }
+
+    .guess-time {
+        font-size: 0.8em;
+        color: #666;
+    }
+    
+    .score-text {
+        text-align: center;
+        padding: 1rem;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        margin: 1rem 0;
+    }
+    
+    .score-text h4 {
+        margin: 0;
+        color: #666;
+        font-size: 1rem;
+    }
+    
+    .score-value {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #2c3e50;
+        margin-top: 0.5rem;
     }
 `;
 document.head.appendChild(style);

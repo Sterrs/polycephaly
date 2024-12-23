@@ -95,7 +95,6 @@ def on_create_game(data):
         'players': [{
             'name': host_name,
             'sid': sid,
-            'score': 0,
             'is_host': True,
             'color': PLAYER_COLORS[0]
         }],
@@ -103,7 +102,9 @@ def on_create_game(data):
         'current_turn_index': 0,
         'guesser_index': None,
         'subject': None,
-        'state': 'waiting'
+        'state': 'waiting',
+        'guesses': [],
+        'score': 10  # Start with 10 points
     }
     
     players[sid] = game_code
@@ -160,7 +161,6 @@ def on_join_game(data):
     game['players'].append({
         'name': player_name,
         'sid': sid,
-        'score': 0,
         'is_host': False,
         'color': player_color
     })
@@ -236,14 +236,16 @@ def on_start_game(data):
                 'isGuesser': True,
                 'subject': None,
                 'currentTurn': first_turn_player,
-                'players': player_info
+                'players': player_info,
+                'score': game['score']  # Send initial score
             }
         else:
             response_data = {
                 'isGuesser': False,
                 'subject': game['subject'],
                 'currentTurn': first_turn_player,
-                'players': player_info
+                'players': player_info,
+                'score': game['score']  # Send initial score
             }
         log_socket_event(logger, "SENT", "game_started", response_data)
         emit('game_started', response_data, room=player['sid'])
@@ -253,7 +255,8 @@ def on_start_game(data):
         'sentence': game['current_sentence'],
         'currentTurn': first_turn_player,
         'subject': game['subject'],
-        'players': player_info
+        'players': player_info,
+        'score': game['score']  # Send initial score
     }
     log_socket_event(logger, "SENT", "sentence_updated", sentence_data)
     emit('sentence_updated', sentence_data, room=game_code)
@@ -307,6 +310,10 @@ def on_add_word(data):
     })
     logger.info(f"Word added to game {game_code}: {word}")
     
+    # Apply score penalty if more than 3 words have been added
+    if len(game['current_sentence']) > 3:
+        game['score'] -= 1
+    
     game['current_turn_index'] = (game['current_turn_index'] + 1) % len(game['players'])
     if game['current_turn_index'] == game['guesser_index']:
         game['current_turn_index'] = (game['current_turn_index'] + 1) % len(game['players'])
@@ -323,7 +330,8 @@ def on_add_word(data):
         'sentence': game['current_sentence'],
         'currentTurn': game['players'][game['current_turn_index']]['name'],
         'subject': game['subject'],
-        'players': player_info
+        'players': player_info,
+        'score': game['score']  # Include shared score
     }
     log_socket_event(logger, "SENT", "sentence_updated", response_data)
     emit('sentence_updated', response_data, room=game_code)
@@ -361,12 +369,19 @@ def on_make_guess(data):
         emit('error', error_msg)
         return
 
+    # Store the guess with player info and timestamp
+    game['guesses'].append({
+        'guess': guess,
+        'player': game['players'][player_index]['name'],
+        'color': game['players'][player_index]['color'],
+        'timestamp': datetime.now().isoformat()
+    })
+
     # Only check if the guess matches the subject
     correct = guess == game['subject'].lower()
     logger.info(f"Guess in game {game_code}: {guess} (correct: {correct})")
     
     if correct:
-        game['players'][player_index]['score'] += 10
         game['state'] = 'finished'
         
         # Create final sentence with words only
@@ -377,7 +392,8 @@ def on_make_guess(data):
             'winner': game['players'][player_index]['name'],
             'subject': game['subject'],
             'sentence': final_sentence,
-            'scores': {p['name']: p['score'] for p in game['players']}
+            'score': game['score'],  # Send final score
+            'guesses': game['guesses']
         }
         log_socket_event(logger, "SENT", "game_ended", response_data)
         emit('game_ended', response_data, room=game_code)
@@ -396,9 +412,25 @@ def on_make_guess(data):
         if game_code in games:
             del games[game_code]
     else:
+        # Apply penalty for incorrect guess
+        game['score'] -= 2
+        
+        # Prepare player info
+        player_info = [{
+            'name': p['name'],
+            'color': p['color'],
+            'isGuesser': game['players'].index(p) == game['guesser_index'],
+            'isHost': p['is_host']
+        } for p in game['players']]
+        
         response_data = {
             'correct': False,
-            'guesser': game['players'][player_index]['name']
+            'guesser': game['players'][player_index]['name'],
+            'guess': guess,
+            'color': game['players'][player_index]['color'],
+            'guesses': game['guesses'],
+            'players': player_info,
+            'score': game['score']  # Include updated shared score
         }
         log_socket_event(logger, "SENT", "guess_result", response_data)
         emit('guess_result', response_data, room=game_code)

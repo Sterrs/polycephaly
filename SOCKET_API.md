@@ -109,6 +109,7 @@ This document describes the Socket.IO events used for communication between clie
     isGuesser: boolean;     // Whether this client is the guesser
     subject: string | null; // The secret word (null for guesser)
     currentTurn: string;    // Name of player whose turn it is
+    score: number;         // Initial team score (starts at 10)
     players: {
       name: string;        // Player name
       color: string;       // Player's color
@@ -131,6 +132,7 @@ This document describes the Socket.IO events used for communication between clie
     }[];
     currentTurn: string; // Name of player whose turn it is
     subject: string;     // The secret word (null for guesser)
+    score: number;      // Current team score
     players: {          // Current player information
       name: string;
       color: string;
@@ -148,6 +150,21 @@ This document describes the Socket.IO events used for communication between clie
   {
     correct: boolean;  // Whether the guess was correct
     guesser: string;  // Name of the player who made the guess
+    guess: string;    // The guess that was made
+    color: string;    // Color of the guesser
+    guesses: {        // Array of all guesses made
+      guess: string;
+      player: string;
+      color: string;
+      timestamp: string;
+    }[];
+    score: number;   // Current team score
+    players: {       // Current player information
+      name: string;
+      color: string;
+      isGuesser: boolean;
+      isHost: boolean;
+    }[];
   }
   ```
 
@@ -157,12 +174,16 @@ This document describes the Socket.IO events used for communication between clie
 - **Payload**:
   ```typescript
   {
-    winner: string;           // Name of the winning player
-    subject: string;         // The secret word
-    sentence: string;        // The complete sentence
-    scores: {               // Final scores
-      [playerName: string]: number;
-    };
+    winner: string;    // Name of the winning player
+    subject: string;   // The secret word
+    sentence: string;  // The complete sentence
+    score: number;    // Final team score
+    guesses: {        // Array of all guesses made
+      guess: string;
+      player: string;
+      color: string;
+      timestamp: string;
+    }[];
   }
   ```
 
@@ -194,4 +215,5 @@ The server may return the following error messages in the `error` event:
 - "Invalid word - only letters are allowed"
 - "Not a valid English word"
 - "You are not the guesser"
+- "Guess cannot be empty"
   
