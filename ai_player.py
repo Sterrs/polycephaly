@@ -3,18 +3,12 @@ import time
 import random
 import os
 from openai import OpenAI
-from concurrent.futures import ProcessPoolExecutor
 import sys
-import argparse
 from typing import Optional
 from logging_utils import setup_logger, log_socket_event, log_api_call
 
 # Default model for AI interactions
 MODEL = "gpt-4o-mini"
-
-class GameError(Exception):
-    """Base class for game-related errors"""
-    pass
 
 class AIPlayer:
     def __init__(self, name: str, game_code: str, max_retries: int = 3, retry_delay: float = 2.0):
@@ -272,27 +266,3 @@ def run_ai_player(name: str, game_code: str):
             player.logger.info("Received interrupt, disconnecting")
             player.sio.disconnect()
         player.logger.info("AI player process ending")
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Run AI players for the word guessing game')
-    parser.add_argument('-n', '--num_players', type=int, default=4,
-                       help='Number of AI players to create (default: 4)')
-    args = parser.parse_args()
-
-    game_code = input("Enter game code: ")
-    ai_names = [f"AI_Player_{i+1}" for i in range(args.num_players)]
-    
-    # Start AI players in separate processes
-    with ProcessPoolExecutor(max_workers=args.num_players) as executor:
-        futures = [
-            executor.submit(run_ai_player, name, game_code)
-            for name in ai_names
-        ]
-        
-        try:
-            # Wait for all processes to complete
-            for future in futures:
-                future.result()
-        except KeyboardInterrupt:
-            print("Shutting down AI players...")
-            executor.shutdown(wait=False)
