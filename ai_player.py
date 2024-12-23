@@ -1,8 +1,8 @@
 import socketio
-import time
+import asyncio
 import random
 import os
-from openai import OpenAI
+from openai import AsyncOpenAI
 import sys
 from typing import Optional
 from logging_utils import setup_logger, log_socket_event, log_api_call
@@ -17,7 +17,7 @@ class AIPlayer:
         self.logger = setup_logger(f'ai_player_{name}', f'ai_player_{name}.log')
         self.logger.info(f"Initializing AI player {name} for game {game_code}")
         
-        self.sio = socketio.Client()
+        self.sio = socketio.AsyncClient()
         self.is_guesser = False
         self.subject = None
         self.current_sentence = []
@@ -28,7 +28,8 @@ class AIPlayer:
         self.retry_delay = retry_delay
         self.last_error = None
         self.game_ended = False
-        self.openai_client = OpenAI()  # Make sure OPENAI_API_KEY is set in environment
+        self.openai_client = AsyncOpenAI()  # Make sure OPENAI_API_KEY is set in environment
+        self.current_task = None  # Track current async task
 
         # Register event handlers
         self.sio.on('connect', self.on_connect)
@@ -40,14 +41,14 @@ class AIPlayer:
         self.sio.on('error', self.on_error)
         self.sio.on('player_left', self.on_player_left)
 
-    def connect_and_join(self) -> bool:
+    async def connect_and_join(self) -> bool:
         """Connect to the server and join the game with retry logic"""
         retries = 0
         while retries < self.max_retries:
             try:
                 if not self.connected:
                     self.logger.info("Attempting to connect to server")
-                    self.sio.connect('http://localhost:5000')
+                    await self.sio.connect('http://localhost:5000')
                     self.connected = True
                 
                 if not self.in_game:
@@ -56,13 +57,13 @@ class AIPlayer:
                         'playerName': self.name
                     }
                     log_socket_event(self.logger, "SENDING", "join_game", join_data)
-                    self.sio.emit('join_game', join_data)
+                    await self.sio.emit('join_game', join_data)
                 return True
             except Exception as e:
                 retries += 1
                 self.logger.error(f"Connection attempt {retries} failed: {e}")
                 if retries < self.max_retries:
-                    time.sleep(self.retry_delay)
+                    await asyncio.sleep(self.retry_delay)
                 else:
                     self.logger.error(f"Failed to connect after {self.max_retries} attempts")
                     return False
@@ -82,7 +83,7 @@ class AIPlayer:
         # Try to reconnect if disconnected unexpectedly
         if not self.game_ended:
             self.logger.info("Attempting to reconnect...")
-            self.connect_and_join()
+            asyncio.create_task(self.connect_and_join())
 
     def on_game_started(self, data):
         log_socket_event(self.logger, "RECEIVED", "game_started", data)
@@ -93,7 +94,7 @@ class AIPlayer:
         if not self.is_guesser:
             self.logger.info(f"Subject is: {self.subject}")
 
-    def on_sentence_updated(self, data):
+    async def on_sentence_updated(self, data):
         log_socket_event(self.logger, "RECEIVED", "sentence_updated", data)
         try:
             self.current_sentence = data['sentence']
@@ -104,30 +105,36 @@ class AIPlayer:
             self.logger.info(f"Current sentence: {current_text}")
             self.logger.info(f"Current turn: {current_turn} (my turn: {self.my_turn})")
 
+            # Cancel any existing task if we're starting a new one
+            if self.current_task and not self.current_task.done():
+                self.current_task.cancel()
+                try:
+                    await self.current_task
+                except asyncio.CancelledError:
+                    pass
+
             if self.is_guesser:
-                # Calculate probability of guessing based on sentence length
-                # Start with 20% chance at 2 words, increasing to 100% at 10 words
                 sentence_length = len(self.current_sentence)
                 if sentence_length >= 2:
-                    base_probability = min(1.0, (sentence_length - 1) * 0.125)  # Reaches 1.0 at 9 words
+                    base_probability = min(1.0, (sentence_length - 1) * 0.125)
                     should_guess = random.random() < base_probability
                     
                     if should_guess:
                         self.logger.info(f"Deciding to guess with probability {base_probability:.2f} at {sentence_length} words")
-                        self.make_guess()
+                        self.current_task = asyncio.create_task(self.make_guess())
                     else:
                         self.logger.info(f"Deciding not to guess with probability {base_probability:.2f} at {sentence_length} words")
             elif self.my_turn:
-                self.add_word()
+                self.current_task = asyncio.create_task(self.add_word())
         except Exception as e:
             self.logger.error(f"Error handling sentence update: {e}")
 
-    def on_guess_result(self, data):
+    async def on_guess_result(self, data):
         log_socket_event(self.logger, "RECEIVED", "guess_result", data)
         if not data['correct'] and self.is_guesser:
             self.logger.info("Incorrect guess, trying again after delay")
-            time.sleep(self.retry_delay)
-            self.make_guess()
+            await asyncio.sleep(self.retry_delay)
+            self.current_task = asyncio.create_task(self.make_guess())
 
     def on_game_ended(self, data):
         log_socket_event(self.logger, "RECEIVED", "game_ended", data)
@@ -136,7 +143,12 @@ class AIPlayer:
         self.logger.info(f"Subject was: {data['subject']}")
         self.game_ended = True
         self.in_game = False
-        self.sio.disconnect()
+        
+        # Cancel any ongoing task
+        if self.current_task and not self.current_task.done():
+            self.current_task.cancel()
+        
+        asyncio.create_task(self.sio.disconnect())
 
     def on_error(self, data):
         log_socket_event(self.logger, "RECEIVED", "error", data)
@@ -149,15 +161,15 @@ class AIPlayer:
             self.in_game = True
         elif "game not found" in error_msg.lower():
             self.logger.error(f"Invalid game code: {self.game_code}")
-            self.sio.disconnect()
+            asyncio.create_task(self.sio.disconnect())
         elif "game has already started" in error_msg.lower():
             self.logger.error("Game already in progress")
-            self.sio.disconnect()
+            asyncio.create_task(self.sio.disconnect())
         elif "name already taken" in error_msg.lower():
             old_name = self.name
             self.name = f"{self.name}_{random.randint(1, 999)}"
             self.logger.info(f"Name {old_name} taken, retrying with {self.name}")
-            self.connect_and_join()
+            asyncio.create_task(self.connect_and_join())
         elif "not your turn" in error_msg.lower():
             self.my_turn = False
 
@@ -165,14 +177,13 @@ class AIPlayer:
         log_socket_event(self.logger, "RECEIVED", "player_left", data)
         self.logger.info(f"Player left. Remaining players: {', '.join(data['players'])}")
 
-    def add_word(self):
+    async def add_word(self):
         """Add a word to the sentence with retry logic for invalid words"""
         retries = 0
         while retries < self.max_retries and self.my_turn:
             try:
                 current_text = ' '.join(word_data['word'] for word_data in self.current_sentence)
                 
-                # Include any previous error in the prompt
                 error_context = ""
                 if self.last_error:
                     error_context = f"\nPrevious attempt failed: {self.last_error}"
@@ -191,37 +202,35 @@ Make sure the word is common and simple.{error_context}"""
                     "temperature": 0.7
                 }
                 log_api_call(self.logger, "POST", "/chat/completions", params)
-                response = self.openai_client.chat.completions.create(**params)
+                response = await self.openai_client.chat.completions.create(**params)
                 word = response.choices[0].message.content.strip().lower()
                 self.logger.info(f"Generated word: {word}")
                 
-                self.last_error = None  # Clear any previous error
+                self.last_error = None
                 emit_data = {'word': word}
                 log_socket_event(self.logger, "SENDING", "add_word", emit_data)
-                self.sio.emit('add_word', emit_data)
+                await self.sio.emit('add_word', emit_data)
                 break
             except Exception as e:
                 retries += 1
                 self.logger.error(f"Error generating word (attempt {retries}): {e}")
                 if retries < self.max_retries:
-                    time.sleep(self.retry_delay)
+                    await asyncio.sleep(self.retry_delay)
                 else:
-                    # Fallback to a simple word if all retries fail
                     fallback_words = ['the', 'is', 'a', 'an', 'it']
                     fallback_word = random.choice(fallback_words)
                     self.logger.info(f"Using fallback word: {fallback_word}")
                     emit_data = {'word': fallback_word}
                     log_socket_event(self.logger, "SENDING", "add_word", emit_data)
-                    self.sio.emit('add_word', emit_data)
+                    await self.sio.emit('add_word', emit_data)
 
-    def make_guess(self):
+    async def make_guess(self):
         """Make a guess with retry logic"""
         retries = 0
-        while retries < self.max_retries and self.my_turn:
+        while retries < self.max_retries:
             try:
                 current_text = ' '.join(word_data['word'] for word_data in self.current_sentence)
                 
-                # Include any previous error in the prompt
                 error_context = ""
                 if self.last_error:
                     error_context = f"\nPrevious attempt failed: {self.last_error}"
@@ -236,33 +245,33 @@ The subject could be anything - a common word, a phrase, a name, etc.{error_cont
                 params = {
                     "model": MODEL,
                     "messages": [{"role": "user", "content": prompt}],
-                    "max_tokens": 20,
+                    "max_tokens": 30,
                     "temperature": 0.3
                 }
                 log_api_call(self.logger, "POST", "/chat/completions", params)
-                response = self.openai_client.chat.completions.create(**params)
+                response = await self.openai_client.chat.completions.create(**params)
                 guess = response.choices[0].message.content.strip().lower()
                 self.logger.info(f"Generated guess: {guess}")
                 
-                self.last_error = None  # Clear any previous error
+                self.last_error = None
                 emit_data = {'guess': guess}
                 log_socket_event(self.logger, "SENDING", "make_guess", emit_data)
-                self.sio.emit('make_guess', emit_data)
+                await self.sio.emit('make_guess', emit_data)
                 break
             except Exception as e:
                 retries += 1
                 self.logger.error(f"Error generating guess (attempt {retries}): {e}")
                 if retries < self.max_retries:
-                    time.sleep(self.retry_delay)
+                    await asyncio.sleep(self.retry_delay)
 
-def run_ai_player(name: str, game_code: str):
+async def run_ai_player(name: str, game_code: str):
     player = AIPlayer(name, game_code)
-    if player.connect_and_join():
+    if await player.connect_and_join():
         try:
             # Keep the process running until the game ends
             while not getattr(player, 'game_ended', False):
-                time.sleep(1)
+                await asyncio.sleep(1)
         except KeyboardInterrupt:
             player.logger.info("Received interrupt, disconnecting")
-            player.sio.disconnect()
+            await player.sio.disconnect()
         player.logger.info("AI player process ending")

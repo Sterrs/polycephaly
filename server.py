@@ -26,7 +26,7 @@ with open('data/targets.txt', 'r') as f:
     logger.info(f"Loaded {len(TARGETS)} targets")
 
 # Load wordlist from file
-with open('data/wordlist.txt', 'r') as f:
+with open('data/words_alpha.txt', 'r') as f:
     VALID_WORDS = {line.strip().lower() for line in f if line.strip()}
     logger.info(f"Loaded {len(VALID_WORDS)} valid words")
 
